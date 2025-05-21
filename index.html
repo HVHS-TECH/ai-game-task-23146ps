@@ -37,6 +37,10 @@ class Ship {
   }
 
   update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+// Draw score
+ctx.fillText(`Score: ${score}`, 20, 30);
     // Rotation
     if (keys['ArrowLeft']) this.rotation = -5;
     else if (keys['ArrowRight']) this.rotation = 5;
