@@ -37,10 +37,6 @@ class Ship {
   }
 
   update() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-// Draw score
-ctx.fillText(`Score: ${score}`, 20, 30);
     // Rotation
     if (keys['ArrowLeft']) this.rotation = -5;
     else if (keys['ArrowRight']) this.rotation = 5;
@@ -67,18 +63,6 @@ ctx.fillText(`Score: ${score}`, 20, 30);
     if (this.x > canvas.width) this.x = 0;
     if (this.y < 0) this.y = canvas.height;
     if (this.y > canvas.height) this.y = 0;
-
-    if (Math.hypot(a.x - b.x, a.y - b.y) < a.radius) {
-  bullets.splice(j, 1);
-  asteroids.splice(i, 1);
-  score += 100;
-
-  if (a.radius > 20) {
-    asteroids.push(new Asteroid(a.x, a.y, a.radius / 2));
-    asteroids.push(new Asteroid(a.x, a.y, a.radius / 2));
-  }
-  break;
-}
   }
 
   draw() {
@@ -165,9 +149,6 @@ class Bullet {
 const ship = new Ship();
 let asteroids = [];
 let bullets = [];
-let score = 0;
-ctx.font = '20px Arial';
-ctx.fillStyle = 'white';
 
 function createAsteroids(count = 5) {
   for (let i = 0; i < count; i++) {
