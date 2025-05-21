@@ -2,10 +2,214 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Snake Game</title>
+  <title>Asteroids Game</title>
+  <style>
+    canvas {
+      background: black;
+      display: block;
+      margin: 0 auto;
+    }
+  </style>
 </head>
 <body>
-  <canvas id="game" width="400" height="400"></canvas>
-   <script src="javascript.js"></script>
+<canvas id="game" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const keys = {};
+document.addEventListener('keydown', e => keys[e.code] = true);
+document.addEventListener('keyup', e => keys[e.code] = false);
+
+const toRadians = deg => deg * Math.PI / 180;
+
+class Ship {
+  constructor() {
+    this.x = canvas.width / 2;
+    this.y = canvas.height / 2;
+    this.radius = 15;
+    this.angle = 0;
+    this.rotation = 0;
+    this.thrusting = false;
+    this.thrust = { x: 0, y: 0 };
+    this.vel = { x: 0, y: 0 };
+  }
+
+  update() {
+    // Rotation
+    if (keys['ArrowLeft']) this.rotation = -5;
+    else if (keys['ArrowRight']) this.rotation = 5;
+    else this.rotation = 0;
+
+    this.angle += this.rotation;
+
+    // Thrust
+    this.thrusting = keys['ArrowUp'];
+    if (this.thrusting) {
+      this.thrust.x += 0.1 * Math.cos(toRadians(this.angle));
+      this.thrust.y += 0.1 * Math.sin(toRadians(this.angle));
+    } else {
+      this.thrust.x *= 0.99;
+      this.thrust.y *= 0.99;
+    }
+
+    // Position
+    this.x += this.thrust.x;
+    this.y += this.thrust.y;
+
+    // Screen wrap
+    if (this.x < 0) this.x = canvas.width;
+    if (this.x > canvas.width) this.x = 0;
+    if (this.y < 0) this.y = canvas.height;
+    if (this.y > canvas.height) this.y = 0;
+  }
+
+  draw() {
+    ctx.strokeStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(
+      this.x + this.radius * Math.cos(toRadians(this.angle)),
+      this.y + this.radius * Math.sin(toRadians(this.angle))
+    );
+    ctx.lineTo(
+      this.x + this.radius * Math.cos(toRadians(this.angle + 140)),
+      this.y + this.radius * Math.sin(toRadians(this.angle + 140))
+    );
+    ctx.lineTo(
+      this.x + this.radius * Math.cos(toRadians(this.angle - 140)),
+      this.y + this.radius * Math.sin(toRadians(this.angle - 140))
+    );
+    ctx.closePath();
+    ctx.stroke();
+  }
+}
+
+class Asteroid {
+  constructor(x, y, radius = 50, level = 0) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.level = level;
+    this.vel = {
+      x: (Math.random() - 0.5) * 2,
+      y: (Math.random() - 0.5) * 2
+    };
+  }
+
+  update() {
+    this.x += this.vel.x;
+    this.y += this.vel.y;
+    if (this.x < 0) this.x = canvas.width;
+    if (this.x > canvas.width) this.x = 0;
+    if (this.y < 0) this.y = canvas.height;
+    if (this.y > canvas.height) this.y = 0;
+  }
+
+  draw() {
+    ctx.strokeStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+class Bullet {
+  constructor(x, y, angle) {
+    this.x = x;
+    this.y = y;
+    this.radius = 2;
+    this.vel = {
+      x: 5 * Math.cos(toRadians(angle)),
+      y: 5 * Math.sin(toRadians(angle))
+    };
+  }
+
+  update() {
+    this.x += this.vel.x;
+    this.y += this.vel.y;
+  }
+
+  draw() {
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  offscreen() {
+    return (
+      this.x < 0 || this.x > canvas.width ||
+      this.y < 0 || this.y > canvas.height
+    );
+  }
+}
+
+// Game setup
+const ship = new Ship();
+let asteroids = [];
+let bullets = [];
+
+function createAsteroids(count = 5) {
+  for (let i = 0; i < count; i++) {
+    let x, y;
+    do {
+      x = Math.random() * canvas.width;
+      y = Math.random() * canvas.height;
+    } while (Math.hypot(x - ship.x, y - ship.y) < 100);
+    asteroids.push(new Asteroid(x, y));
+  }
+}
+createAsteroids();
+
+function shootBullet() {
+  bullets.push(new Bullet(
+    ship.x + ship.radius * Math.cos(toRadians(ship.angle)),
+    ship.y + ship.radius * Math.sin(toRadians(ship.angle)),
+    ship.angle
+  ));
+}
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') shootBullet();
+});
+
+// Main game loop
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ship.update();
+  ship.draw();
+
+  for (let i = asteroids.length - 1; i >= 0; i--) {
+    const a = asteroids[i];
+    a.update();
+    a.draw();
+
+    for (let j = bullets.length - 1; j >= 0; j--) {
+      const b = bullets[j];
+      if (Math.hypot(a.x - b.x, a.y - b.y) < a.radius) {
+        bullets.splice(j, 1);
+        asteroids.splice(i, 1);
+        if (a.radius > 20) {
+          asteroids.push(new Asteroid(a.x, a.y, a.radius / 2));
+          asteroids.push(new Asteroid(a.x, a.y, a.radius / 2));
+        }
+        break;
+      }
+    }
+  }
+
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    bullets[i].update();
+    bullets[i].draw();
+    if (bullets[i].offscreen()) {
+      bullets.splice(i, 1);
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+update();
+</script>
 </body>
+</html>
